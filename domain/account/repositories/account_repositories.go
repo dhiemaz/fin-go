@@ -12,4 +12,4 @@ func NewAccountRepository(db *gorm.DB) *AccountRepository {
 	}
 }
 
-func (r *AccountRepository) CreateCustomer
+//func (r *AccountRepository) CreateCustomer

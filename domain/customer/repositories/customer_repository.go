@@ -7,22 +7,39 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-type CustomerRepository struct {
+// CustomerRepository interface
+type CustomerRepository interface {
+	Create(ctx context.Context, customer entities.Customer) error
+	CreateBatch(ctx context.Context, customers []entities.Customer) error
+	Update(ctx context.Context, customer entities.Customer) error
+	Delete(ctx context.Context, customer entities.Customer) error
+	GetAll(ctx context.Context, limit int, offset int) ([]entities.CustomerData, error)
+	GetById(ctx context.Context, customerId int64) (entities.Customer, error)
+	GetDataById(ctx context.Context, customerId int64) (entities.CustomerData, error)
+	GetByUniqueId(ctx context.Context, uniqueId string) (entities.Customer, error)
+	GetByDataUniqueId(ctx context.Context, uniqueId string) (entities.CustomerData, error)
+	Count(ctx context.Context) (int64, error)
+	ExistsRecord(ctx context.Context, field string, value string) (bool, error)
+}
+
+type Customer struct {
 	db *gorm.DB
 }
 
-func NewCustomerRepository(db *gorm.DB) *CustomerRepository {
-	return &CustomerRepository{
+func NewCustomerRepository(db *gorm.DB) *Customer {
+	return &Customer{
 		db: db,
 	}
 }
 
-func (repo *CustomerRepository) Create(ctx context.Context, customer entities.Customer) error {
+// Create : create a customer
+func (repo *Customer) Create(ctx context.Context, customer entities.Customer) error {
 	result := repo.db.Create(&customer)
 	return result.Error
 }
 
-func (repo *CustomerRepository) CreateBatch(ctx context.Context, customers []entities.Customer) error {
+// CreateBatch : create customer using batch mechanism
+func (repo *Customer) CreateBatch(ctx context.Context, customers []entities.Customer) error {
 	tx := repo.db.Begin()
 	result := repo.db.Create(&customers)
 	if result.Error != nil {
@@ -32,17 +49,20 @@ func (repo *CustomerRepository) CreateBatch(ctx context.Context, customers []ent
 	return tx.Commit().Error
 }
 
-func (repo *CustomerRepository) Update(ctx context.Context, customer entities.Customer) error {
+// Update : update customer data
+func (repo *Customer) Update(ctx context.Context, customer entities.Customer) error {
 	result := repo.db.Save(&customer)
 	return result.Error
 }
 
-func (repo *CustomerRepository) Delete(ctx context.Context, customer entities.Customer) error {
+// Delete : delete a customer
+func (repo *Customer) Delete(ctx context.Context, customer entities.Customer) error {
 	result := repo.db.Delete(&customer)
 	return result.Error
 }
 
-func (repo *CustomerRepository) GetAll(ctx context.Context, limit int, offset int) ([]entities.CustomerData, error) {
+// GetAll : get all customers
+func (repo *Customer) GetAll(ctx context.Context, limit int, offset int) ([]entities.CustomerData, error) {
 	var customers []entities.CustomerData
 	result := repo.db.
 		Table("view_customer_data").
@@ -51,7 +71,8 @@ func (repo *CustomerRepository) GetAll(ctx context.Context, limit int, offset in
 	return customers, result.Error
 }
 
-func (repo *CustomerRepository) GetById(ctx context.Context, customerId int64) (entities.Customer, error) {
+// GetById : get customer using id
+func (repo *Customer) GetById(ctx context.Context, customerId int64) (entities.Customer, error) {
 	var customer entities.Customer
 	result := repo.db.Table("customers").First(&customer, customerId)
 	if result.Error != nil {
@@ -60,7 +81,8 @@ func (repo *CustomerRepository) GetById(ctx context.Context, customerId int64) (
 	return customer, result.Error
 }
 
-func (repo *CustomerRepository) GetDataById(ctx context.Context, customerId int64) (entities.CustomerData, error) {
+// GetDataById : get customer view data using id
+func (repo *Customer) GetDataById(ctx context.Context, customerId int64) (entities.CustomerData, error) {
 	var customer entities.CustomerData
 	result := repo.db.Table("view_customer_data").First(&customer, customerId)
 	if result.Error != nil {
@@ -69,7 +91,8 @@ func (repo *CustomerRepository) GetDataById(ctx context.Context, customerId int6
 	return customer, result.Error
 }
 
-func (repo *CustomerRepository) GetByUniqueId(ctx context.Context, uniqueId string) (entities.Customer, error) {
+// GetByUniqueId : get customer data using unique id
+func (repo *Customer) GetByUniqueId(ctx context.Context, uniqueId string) (entities.Customer, error) {
 	var customer entities.Customer
 	result := repo.db.Table("customers").First(&customer, "unique_id", uniqueId)
 	if result.Error != nil {
@@ -78,7 +101,8 @@ func (repo *CustomerRepository) GetByUniqueId(ctx context.Context, uniqueId stri
 	return customer, result.Error
 }
 
-func (repo *CustomerRepository) GetByDataUniqueId(ctx context.Context, uniqueId string) (entities.CustomerData, error) {
+// GetByDataUniqueId : get customer view data using unique id
+func (repo *Customer) GetByDataUniqueId(ctx context.Context, uniqueId string) (entities.CustomerData, error) {
 	var customer entities.CustomerData
 	result := repo.db.Table("view_customer_data").First(&customer, "unique_id", uniqueId)
 	if result.Error != nil {
@@ -87,13 +111,15 @@ func (repo *CustomerRepository) GetByDataUniqueId(ctx context.Context, uniqueId 
 	return customer, result.Error
 }
 
-func (repo *CustomerRepository) Count(ctx context.Context) (int64, error) {
+// Count : get costumer data count
+func (repo *Customer) Count(ctx context.Context) (int64, error) {
 	var count int64
 	result := repo.db.Table("customers").Count(&count)
 	return count, result.Error
 }
 
-func (repo *CustomerRepository) ExistsRecord(ctx context.Context, field string, value string) (bool, error) {
+// ExistsRecord : check if record exist by valid fields
+func (repo *Customer) ExistsRecord(ctx context.Context, field string, value string) (bool, error) {
 	var count int64
 	// Validate the field to avoid SQL injection
 	validFields := map[string]bool{

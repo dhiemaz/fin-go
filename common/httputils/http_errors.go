@@ -1,6 +1,8 @@
-package common
+package httputils
 
-import "net/http"
+import (
+	"net/http"
+)
 
 type HttpError struct {
 	Message    string

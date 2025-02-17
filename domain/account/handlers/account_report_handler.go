@@ -9,7 +9,7 @@ type AccountHandler struct {
 	logger *zap.Logger
 }
 
-func NewAccountController(db *gorm.DB) *AccountController {
+func NewAccountController(db *gorm.DB) *AccountHandler {
 	return &AccountHandler{
 		//repository:  accountRepo.NewAccountRepository(db),
 		//customerRepository: customerRepo.NewCustomerRepository(db),

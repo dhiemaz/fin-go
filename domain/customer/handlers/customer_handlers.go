@@ -3,119 +3,179 @@ package handlers
 import (
 	"bitbucket.org/rctiplus/almasbub"
 	"fmt"
-	"github.com/dhiemaz/fin-go/common"
+	"github.com/dhiemaz/fin-go/common/httputils"
+	"github.com/dhiemaz/fin-go/common/serialization"
+	"github.com/dhiemaz/fin-go/domain/customer/usecase"
 	"github.com/dhiemaz/fin-go/entities"
-	"github.com/jinzhu/gorm"
 	"go.uber.org/zap"
 	"net/http"
 )
 
-type CustomerHandler struct {
-	//service *services.CustomerService
+type Handler struct {
+	UseCase     usecase.CustomerUseCase
 	infoLogger  *zap.Logger
 	errorLogger *zap.Logger
 }
 
-func NewCustomerHandler(db *gorm.DB) *CustomerHandler {
-	return &CustomerHandler{
-		//service:     services.NewCustomerService(db),
+func NewCustomerHandler(customerUseCase usecase.CustomerUseCase) *Handler {
+	return &Handler{
+		UseCase: customerUseCase,
 		//infoLogger:  config.NewLogger("customers-info.log"),
 		//errorLogger: config.NewLogger("customers-error.log"),
 	}
 }
 
-func (handler *CustomerHandler) getAllCustomers(w http.ResponseWriter, r *http.Request) {
-	params := common.GetPaginationParams(r)
-	customers, err := handler.service.GetAllCustomers(r, r.Context(), params)
+func (customer *Handler) getAllCustomers(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	params := httputils.GetPaginationParams(r)
+	customers, count, err := customer.UseCase.GetAllCustomers(ctx, params)
 	if err != nil {
-		common.HandleHTTPErrors(w, err)
+		httputils.HandleHTTPErrors(w, err)
 		return
 	}
-	common.WriteJSONSimple(w, http.StatusOK, customers)
+
+	paginatedResult, err := httputils.NewPagination(r, customers, count, params.CurrentPage, params.Limit)
+	if err != nil {
+		httputils.HandleHTTPErrors(w, err)
+		return
+	}
+
+	httputils.WriteJSONSimple(w, http.StatusOK, paginatedResult)
 }
 
-func (handler *CustomerHandler) getCustomerById(w http.ResponseWriter, r *http.Request) {
+func (customer *Handler) getCustomerById(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	id := almasbub.ToInt64(r.PathValue("id"))
-	customer, err := handler.service.GetCustomerById(r.Context(), id)
+
+	customerData, err := customer.UseCase.GetCustomerById(ctx, id)
 	if err != nil {
-		common.HandleHTTPErrors(w, err)
+		httputils.HandleHTTPErrors(w, err)
 		return
 	}
-	common.WriteJSON(w, http.StatusOK, customer)
+
+	httputils.WriteJSON(w, http.StatusOK, customerData)
 }
 
-func (handler *CustomerHandler) getCustomerByUniqueId(w http.ResponseWriter, r *http.Request) {
+func (customer *Handler) getCustomerByUniqueId(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	uniqueId := r.PathValue("unique_id")
-	customer, err := handler.service.GetCustomerByUniqueId(r.Context(), uniqueId)
+
+	customerData, err := customer.UseCase.GetCustomerByUniqueId(ctx, uniqueId)
 	if err != nil {
-		common.HandleHTTPErrors(w, err)
+		httputils.HandleHTTPErrors(w, err)
 		return
 	}
-	common.WriteJSON(w, http.StatusOK, customer)
+
+	httputils.WriteJSON(w, http.StatusOK, customerData)
 }
 
-func (handler *CustomerHandler) createCustomer(w http.ResponseWriter, r *http.Request) {
+func (customer *Handler) createCustomer(w http.ResponseWriter, r *http.Request) {
 	var request entities.CreateCustomerRequest
-	err := handler.service.CreateCustomer(r, r.Context(), request)
+	ctx := r.Context()
+
+	if err := serialization.DecodeJson(r.Body, &request); err != nil {
+		httputils.HandleHTTPErrors(w, httputils.NewBadRequestError(err.Error()))
+	}
+
+	if err := httputils.Validate(request); err != nil {
+		httputils.HandleHTTPErrors(w, httputils.NewBadRequestError(err.Error()))
+	}
+
+	err := customer.UseCase.CreateCustomer(ctx, request)
 	if err != nil {
-		common.HandleHTTPErrors(w, err)
-		handler.errorLogger.Error(err.Error())
+		customer.errorLogger.Error(err.Error())
+		httputils.HandleHTTPErrors(w, err)
 		return
 	}
 
 	msg := fmt.Sprintf("Customer '%s' created", request.CustomerName)
-	handler.infoLogger.Info(msg)
-	common.WriteJSON(w, http.StatusCreated, msg)
+	customer.infoLogger.Info(msg)
+	httputils.WriteJSON(w, http.StatusCreated, msg)
 }
 
-func (handler *CustomerHandler) changeCustomerType(w http.ResponseWriter, r *http.Request) {
+func (customer *Handler) changeCustomerType(w http.ResponseWriter, r *http.Request) {
 	var request entities.ChangeCustomerTypeRequest
-	err := handler.service.ChangeCustomerType(r, r.Context(), request)
+	ctx := r.Context()
+
+	if err := serialization.DecodeJson(r.Body, &request); err != nil {
+		httputils.HandleHTTPErrors(w, httputils.NewBadRequestError(err.Error()))
+	}
+
+	if err := httputils.Validate(request); err != nil {
+		httputils.HandleHTTPErrors(w, httputils.NewBadRequestError(err.Error()))
+	}
+
+	err := customer.UseCase.ChangeCustomerType(ctx, request)
 	if err != nil {
-		common.HandleHTTPErrors(w, err)
-		handler.errorLogger.Error(err.Error())
+		customer.errorLogger.Error(err.Error())
+		httputils.HandleHTTPErrors(w, err)
 		return
 	}
+
 	msg := fmt.Sprintf("Customer '%d' type changed", request.CustomerId)
-	handler.infoLogger.Info(msg)
-	common.WriteJSON(w, http.StatusCreated, msg)
+	customer.infoLogger.Info(msg)
+	httputils.WriteJSON(w, http.StatusCreated, msg)
 }
 
-func (handler *CustomerHandler) changeCustomerStatus(w http.ResponseWriter, r *http.Request) {
+func (customer *Handler) changeCustomerStatus(w http.ResponseWriter, r *http.Request) {
 	var request entities.ChangeCustomerStatusRequest
-	err := handler.service.ChangeCustomerStatus(r, r.Context(), request)
+	ctx := r.Context()
+
+	if err := serialization.DecodeJson(r.Body, &request); err != nil {
+		httputils.HandleHTTPErrors(w, httputils.NewBadRequestError(err.Error()))
+	}
+
+	if err := httputils.Validate(request); err != nil {
+		httputils.HandleHTTPErrors(w, httputils.NewBadRequestError(err.Error()))
+	}
+
+	err := customer.UseCase.ChangeCustomerStatus(ctx, request)
 	if err != nil {
-		common.HandleHTTPErrors(w, err)
-		handler.errorLogger.Error(err.Error())
+		customer.errorLogger.Error(err.Error())
+		httputils.HandleHTTPErrors(w, err)
 		return
 	}
+
 	msg := fmt.Sprintf("Customer '%d' status changed", request.CustomerId)
-	handler.infoLogger.Info(msg)
-	common.WriteJSON(w, http.StatusCreated, msg)
+	customer.infoLogger.Info(msg)
+	httputils.WriteJSON(w, http.StatusCreated, msg)
 }
 
-func (handler *CustomerHandler) updateCustomerContacts(w http.ResponseWriter, r *http.Request) {
+func (customer *Handler) updateCustomerContacts(w http.ResponseWriter, r *http.Request) {
 	var request entities.UpdateCustomerContactRequest
-	err := handler.service.UpdateCustomerContacts(r, r.Context(), request)
+	ctx := r.Context()
+
+	if err := serialization.DecodeJson(r.Body, &request); err != nil {
+		httputils.HandleHTTPErrors(w, httputils.NewBadRequestError(err.Error()))
+	}
+
+	if err := httputils.Validate(request); err != nil {
+		httputils.HandleHTTPErrors(w, httputils.NewBadRequestError(err.Error()))
+	}
+
+	err := customer.UseCase.UpdateCustomerContacts(ctx, request)
 	if err != nil {
-		common.HandleHTTPErrors(w, err)
-		handler.errorLogger.Error(err.Error())
+		httputils.HandleHTTPErrors(w, err)
+		customer.errorLogger.Error(err.Error())
 		return
 	}
+
 	msg := fmt.Sprintf("Customer '%d' contacts updated", request.CustomerId)
-	handler.infoLogger.Info(msg)
-	common.WriteJSON(w, http.StatusCreated, msg)
+	customer.infoLogger.Info(msg)
+	httputils.WriteJSON(w, http.StatusCreated, msg)
 }
 
-func (handler *CustomerHandler) deleteCustomer(w http.ResponseWriter, r *http.Request) {
+func (customer *Handler) deleteCustomer(w http.ResponseWriter, r *http.Request) {
 	customerId := almasbub.ToInt64(r.PathValue("id"))
-	err := handler.service.DeleteCustomer(r.Context(), customerId)
+	err := customer.UseCase.DeleteCustomer(r.Context(), customerId)
 	if err != nil {
-		common.HandleHTTPErrors(w, err)
-		handler.errorLogger.Error(err.Error())
+		customer.errorLogger.Error(err.Error())
+		httputils.HandleHTTPErrors(w, err)
 		return
 	}
+
 	msg := fmt.Sprintf("Customer '%d' deleted", customerId)
-	handler.infoLogger.Info(msg)
-	common.WriteJSON(w, http.StatusNoContent, msg)
+	customer.infoLogger.Info(msg)
+	httputils.WriteJSON(w, http.StatusNoContent, msg)
 }

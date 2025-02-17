@@ -1,4 +1,4 @@
-package common
+package httputils
 
 import (
 	"bitbucket.org/rctiplus/almasbub"

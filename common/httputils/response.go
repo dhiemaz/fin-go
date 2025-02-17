@@ -1,4 +1,4 @@
-package common
+package httputils
 
 import (
 	"encoding/json"
@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-type jsonResponse struct {
+type JSONResponse struct {
 	Message *string `json:"message,omitempty"` // Message field for the response (optional)
 	Status  int     `json:"status"`            // Status code of the response
 	Count   *int    `json:"count,omitempty"`   // Count field for the response (optional)
@@ -15,7 +15,7 @@ type jsonResponse struct {
 
 func WriteJSONError(w http.ResponseWriter, message string, statusCode int) {
 	writeJSONHeader(w, statusCode)
-	response := jsonResponse{
+	response := JSONResponse{
 		Message: &message,
 		Status:  statusCode,
 	}
@@ -24,7 +24,7 @@ func WriteJSONError(w http.ResponseWriter, message string, statusCode int) {
 
 func WriteJSON(w http.ResponseWriter, statusCode int, data any) {
 	writeJSONHeader(w, statusCode)
-	response := jsonResponse{
+	response := JSONResponse{
 		Status: statusCode,
 		Data:   data,
 	}

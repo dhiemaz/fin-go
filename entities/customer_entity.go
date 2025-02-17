@@ -9,7 +9,7 @@ type Customer struct {
 	CustomerName         string         `gorm:"column:customer_name"`
 	IdentificationNumber string         `gorm:"column:identification_number"`
 	Gender               string         `gorm:"column:gender"`
-	BirtDate             time.Time      `gorm:"column:birth_date"`
+	BirthDate            time.Time      `gorm:"column:birth_date"`
 	Email                string         `gorm:"column:email"`
 	Phone                string         `gorm:"column:phone"`
 	Address              string         `gorm:"column:address"`
