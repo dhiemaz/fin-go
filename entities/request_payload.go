@@ -29,3 +29,9 @@ type ChangeCustomerTypeRequest struct {
 	CustomerId int64        `json:"customer_id" validate:"required"`
 	NewType    CustomerType `json:"new_type" validate:"required"`
 }
+
+type CreateAccountRequest struct {
+	NickName   string  `json:"nick_name" validate:"required"`
+	Amount     float64 `json:"amount" validate:"required"`
+	CustomerID int64   `json:"customer_id" validate:"required"`
+}

@@ -28,3 +28,19 @@ func GenerateCode(prefix string) string {
 	timestamp := time.Now().Format("20060102150405")
 	return prefix + timestamp
 }
+
+func GenerateCIF() string {
+	// Generate a 12-character random string (you can modify the length or include specific patterns)
+	const cifLength = 12
+	var cif []byte
+	for i := 0; i < cifLength; i++ {
+		b := make([]byte, 1)
+		_, err := rand.Read(b)
+		if err != nil {
+			log.Fatal(err)
+		}
+		// Adding numbers or letters to the CIF
+		cif = append(cif, '0'+b[0]%10) // Random digit between 0-9
+	}
+	return string(cif)
+}
