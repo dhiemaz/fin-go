@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bitbucket.org/rctiplus/almasbub"
 	"fmt"
 	"github.com/dhiemaz/fin-go/common/httputils"
 	"github.com/dhiemaz/fin-go/common/serialization"
@@ -46,4 +47,18 @@ func (account *Handler) createAccount(w http.ResponseWriter, r *http.Request) {
 	msg := fmt.Sprintf("Account '%s' created", request.NickName)
 	account.infoLogger.Info(msg)
 	httputils.WriteJSON(w, http.StatusCreated, msg)
+}
+
+func (account *Handler) deleteAccount(w http.ResponseWriter, r *http.Request) {
+	accountId := almasbub.ToInt64(r.PathValue("id"))
+	err := account.UseCase.DeleteAccount(r.Context(), accountId)
+	if err != nil {
+		account.errorLogger.Error(err.Error())
+		httputils.HandleHTTPErrors(w, err)
+		return
+	}
+
+	msg := fmt.Sprintf("Account '%d' deleted", accountId)
+	account.infoLogger.Info(msg)
+	httputils.WriteJSON(w, http.StatusNoContent, msg)
 }
